@@ -10,7 +10,7 @@
 
 ## Context
 
-The brief wants structured JSON logs with a per-request correlation id, logging
+We want structured JSON logs with a per-request correlation id, logging
 the *meaningful domain events* — and they must be publicly viewable. `CorrelationIdFilter`
 and the logback JSON encoder are scaffolded; this task nails the event taxonomy
 and makes the stream public.
@@ -43,7 +43,7 @@ emits a typed JSON event; the log stream is reachable by a public link.
 - Public logs: Render's log stream is public per-service **only via dashboard**;
   add a **log drain to a free viewer** (e.g. Better Stack / Grafana Cloud Loki
   free tier) OR a `/debug/logs/tail` SSE endpoint gated to a read-only token
-  published in the submission. Decide in this task; document in README.
+  published in the README. Decide in this task; document in README.
 
 ### Out of scope
 - Log-based alerting
@@ -56,12 +56,12 @@ emits a typed JSON event; the log stream is reachable by a public link.
 - **Hash, don't log, the idempotency key** — it's client-controlled and may be
   reused across users; a short prefix of SHA-256 is enough to correlate a retry
   storm in the logs without leaking it.
-- **Balance-after on debit/credit events** gives a reviewer a running audit trail
+- **Balance-after on debit/credit events** gives an operator a running audit trail
   they can eyeball for conservation during a burst.
 - **Public log choice:** prefer a **log drain to a free hosted viewer** with a
   shareable dashboard link over a custom endpoint — less code, no auth surface,
   and it survives app restarts. Fallback: screen-recording the Render stream
-  during a burst (the brief explicitly allows this).
+  during a burst (acceptable for this service).
 
 ## Deliverables
 
@@ -70,7 +70,7 @@ emits a typed JSON event; the log stream is reachable by a public link.
 - `CorrelationIdFilter` finalized + tests
 - `logback-spring.xml` field tuning
 - README "Observability → Logs" with the public link + example queries
-- `docs/WRITEUP.md` — no dedicated section, but the submission "public logs link"
+- `docs/WRITEUP.md` — no dedicated section, but the "public logs link"
 
 ## Acceptance criteria
 

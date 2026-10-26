@@ -14,5 +14,5 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ./mvnw -q -B test-compile exec:java \
-  -Dexec.mainClass=com.paytm.wallet.bench.EngineBenchmark \
+  -Dexec.mainClass=com.p2pwallet.wallet.bench.EngineBenchmark \
   -Dexec.classpathScope=test

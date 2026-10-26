@@ -10,7 +10,7 @@
 
 ## Context
 
-The reviewer runs probes against the deployed URL. Ship a **one-command** script
+Anyone can run probes against the deployed URL. Ship a **one-command** script
 that reproduces each, asserts the invariant, and exits non-zero on violation —
 plus a small eval harness that turns the `evals/scenarios/*.md` specs into a
 runnable, reportable suite.
@@ -56,19 +56,19 @@ operational) and writes `evals/reports/<timestamp>.md`.
 
 ## Design notes / decisions
 
-- **Bash+curl canonical** — the brief lists it first and it has zero toolchain
-  needs for the reviewer. Go variant only for when bash's fork-per-request
+- **Bash+curl canonical** — it has zero toolchain
+  needs for whoever runs it. Go variant only for when bash's fork-per-request
   concurrency is too weak to actually contend.
-- **Assertions live in the script, not the reviewer's head** — each probe prints
+- **Assertions live in the script, not the operator's head** — each probe prints
   the computed vs expected and a verdict; exit code is the sum of failures.
 - **`Σ` computed by summing `GET /wallets/{id}`** across the known set — black
-  box, no DB access, same thing the reviewer would check.
+  box, no DB access, same thing a user would check.
 - **Warm-up + bounded concurrency for the deployed target** — a free instance
   with pool=5 will 503 under 200 raw parallel curls; the script paces to
   `MAX_INFLIGHT` and still demonstrates contention (the DB serializes anyway).
   Document that local (compose) can push harder.
 - **Eval report is an artifact** — committed under `evals/reports/` for the
-  submission so the reviewer sees a green run even before running it themselves.
+  repo so a reader sees a green run even before running it themselves.
 
 ## Deliverables
 

@@ -14,7 +14,7 @@
 # RenderDatabaseUrlEnvironmentPostProcessor bridges it, no Fly-specific code.
 
 app = "p2p-wallet"
-primary_region = "bom" # Mumbai — closest to India-based reviewers
+primary_region = "bom" # Mumbai — closest to India-based users
 
 [build]
 

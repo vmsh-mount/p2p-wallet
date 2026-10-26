@@ -11,7 +11,7 @@
 ## Goal
 
 The image is multi-stage, runs as a non-root user, and has a working
-`HEALTHCHECK` — the brief's three explicit container requirements.
+`HEALTHCHECK` — the three explicit container requirements.
 
 ## Preconditions
 

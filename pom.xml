@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.paytm</groupId>
+    <groupId>com.p2pwallet</groupId>
     <artifactId>wallet</artifactId>
     <version>0.1.0</version>
     <name>p2p-wallet</name>

@@ -51,7 +51,7 @@ concurrent integration test.
 - **Idempotent by nature** — no idempotency key needed here; `userId` *is* the
   key.
 - Response code: return **`200` always** with `{id, balance_paise}` — "get or
-  create" is one logical operation; documented so the reviewer isn't surprised.
+  create" is one logical operation; documented so callers aren't surprised.
 
 ## Deliverables
 

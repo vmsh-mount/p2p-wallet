@@ -1,0 +1,193 @@
+package com.p2pwallet.wallet.service.transfer;
+
+import com.p2pwallet.wallet.domain.Transfer;
+import com.p2pwallet.wallet.idempotency.RequestFingerprint;
+import com.p2pwallet.wallet.observability.DomainEvents;
+import com.p2pwallet.wallet.observability.WalletMetrics;
+import com.p2pwallet.wallet.repo.RowMappers;
+import com.p2pwallet.wallet.service.DomainExceptions;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+/**
+ * Everything the three engines share: the transaction wrapper, idempotency
+ * (pre-check, locked re-check, {@code UNIQUE} fallback, fingerprint/409), the
+ * {@code transfers}-row insert, and the domain events + counters. Subclasses
+ * implement only {@link #moveMoney(TransferRequest)} — the part that actually
+ * differs (conditional {@code UPDATE} vs {@code SELECT FOR UPDATE} vs
+ * {@code SERIALIZABLE} read-modify-write).
+ */
+public abstract class AbstractJdbcTransferEngine implements TransferEngine {
+
+    protected final JdbcTemplate jdbc;
+    protected final WalletMetrics metrics;
+    protected final TransactionTemplate tx;
+    private final Engine engineType;
+
+    protected AbstractJdbcTransferEngine(JdbcTemplate jdbc, PlatformTransactionManager txManager,
+                                         WalletMetrics metrics, Engine engineType, int isolationLevel) {
+        this.jdbc = jdbc;
+        this.metrics = metrics;
+        this.engineType = engineType;
+        this.tx = new TransactionTemplate(txManager);
+        this.tx.setIsolationLevel(isolationLevel);
+    }
+
+    @Override
+    public Engine engineType() {
+        return engineType;
+    }
+
+    @Override
+    public TransferOutcome execute(TransferRequest request) {
+        try {
+            return attempt(request);
+        } catch (DuplicateKeyException raced) {
+            // A concurrent first-timer with the same key won the INSERT and committed;
+            // our tx rolled back. Read their row and return it (or 409 on a body mismatch).
+            return tx.execute(status -> replayOrConflict(mustFind(request.idempotencyKey()), request));
+        }
+    }
+
+    /** One transactional attempt: idempotency pre-check, then the engine-specific money move. */
+    protected final TransferOutcome attempt(TransferRequest r) {
+        return tx.execute(status -> {
+            Transfer existing = findByKey(r.idempotencyKey());
+            if (existing != null) {
+                return replayOrConflict(existing, r); // pure replay — no lock taken
+            }
+            return moveMoney(r);
+        });
+    }
+
+    /**
+     * Move {@code amount} from {@code from} to {@code to} with no overdraft and no
+     * lost update, then return {@link #completed} / {@link #declined}. Runs inside
+     * the transaction opened by {@link #attempt}. Implementations use
+     * {@code RETURNING balance_paise} on the balance {@code UPDATE}s so no extra
+     * {@code SELECT} is needed for the {@code *_balance_after} audit fields.
+     */
+    protected abstract TransferOutcome moveMoney(TransferRequest r);
+
+    // ---- helpers for subclasses -------------------------------------------
+
+    /** Re-read the key once a lock is held; {@code null} if still absent. */
+    protected TransferOutcome recheckKeyUnderLock(TransferRequest r) {
+        Transfer existing = findByKey(r.idempotencyKey());
+        return existing == null ? null : replayOrConflict(existing, r);
+    }
+
+    /** {@code SELECT ... FOR UPDATE} both wallet rows, ascending id — the deadlock-free lock order. */
+    protected void lockBothWalletsInIdOrder(UUID a, UUID b) {
+        List<UUID> ordered = Stream.of(a, b).sorted(Comparator.naturalOrder()).toList();
+        jdbc.query("SELECT id FROM wallets WHERE id IN (?, ?) ORDER BY id FOR UPDATE",
+                rs -> { /* rows discarded; we only need the locks */ },
+                ordered.get(0), ordered.get(1));
+    }
+
+    protected long balanceOf(UUID walletId) {
+        return jdbc.queryForObject("SELECT balance_paise FROM wallets WHERE id = ?", Long.class, walletId);
+    }
+
+    /**
+     * {@code UPDATE wallets SET balance_paise = balance_paise - :amt WHERE id = :from
+     * AND balance_paise >= :amt RETURNING balance_paise}. Empty result ⇒ overdraft ⇒
+     * {@code null}. One statement does the check, the debit, and the audit read.
+     */
+    protected Long debitConditional(UUID from, long amount) {
+        return jdbc.query(
+                "UPDATE wallets SET balance_paise = balance_paise - ? "
+                + "WHERE id = ? AND balance_paise >= ? RETURNING balance_paise",
+                rs -> rs.next() ? rs.getLong(1) : null,
+                amount, from, amount);
+    }
+
+    /** Unconditional debit (source already checked / locked), returns the new balance. */
+    protected long debit(UUID from, long amount) {
+        return jdbc.queryForObject(
+                "UPDATE wallets SET balance_paise = balance_paise - ? WHERE id = ? RETURNING balance_paise",
+                Long.class, amount, from);
+    }
+
+    /** Credit, returns the new balance. */
+    protected long credit(UUID to, long amount) {
+        return jdbc.queryForObject(
+                "UPDATE wallets SET balance_paise = balance_paise + ? WHERE id = ? RETURNING balance_paise",
+                Long.class, amount, to);
+    }
+
+    /** Set an exact balance (serializable engine's blind write), returns it back. */
+    protected long setBalance(UUID walletId, long value) {
+        return jdbc.queryForObject(
+                "UPDATE wallets SET balance_paise = ? WHERE id = ? RETURNING balance_paise",
+                Long.class, value, walletId);
+    }
+
+    protected TransferOutcome completed(TransferRequest r, long fromBalanceAfter, long toBalanceAfter) {
+        Transfer t = insertTransfer(r, Transfer.Status.COMPLETED, null);
+        // emitted after the INSERT commits its row, so a rolled-back attempt logs nothing
+        DomainEvents.transferDebited(t.id(), r.fromWalletId(), r.amountPaise(), fromBalanceAfter);
+        DomainEvents.transferCredited(t.id(), r.toWalletId(), r.amountPaise(), toBalanceAfter);
+        metrics.transferCompleted();
+        return TransferOutcome.fresh(t);
+    }
+
+    protected TransferOutcome declined(TransferRequest r) {
+        Transfer t = insertTransfer(r, Transfer.Status.DECLINED, "insufficient_funds");
+        DomainEvents.transferDeclined(t.id(), r.fromWalletId(), r.amountPaise(), "insufficient_funds");
+        metrics.declinedInsufficientFunds();
+        return TransferOutcome.fresh(t);
+    }
+
+    // ---- idempotency internals -------------------------------------------
+
+    private TransferOutcome replayOrConflict(Transfer existing, TransferRequest r) {
+        String fingerprint = RequestFingerprint.of(r.fromWalletId(), r.toWalletId(), r.amountPaise());
+        if (!fingerprint.equals(existing.requestFingerprint())) {
+            DomainEvents.conflict(r.idempotencyKey());
+            metrics.conflict();
+            throw new DomainExceptions.IdempotencyConflict(
+                    "idempotency_key already used for a different transfer");
+        }
+        DomainEvents.idempotentReplay(existing.id(), r.idempotencyKey());
+        metrics.idempotentReplay();
+        return TransferOutcome.replay(existing);
+    }
+
+    private Transfer findByKey(String idempotencyKey) {
+        List<Transfer> rows = jdbc.query(
+                "SELECT " + RowMappers.TRANSFER_COLUMNS + " FROM transfers WHERE idempotency_key = ?",
+                RowMappers.TRANSFER, idempotencyKey);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private Transfer mustFind(String idempotencyKey) {
+        Transfer t = findByKey(idempotencyKey);
+        if (t == null) {
+            throw new IllegalStateException(
+                    "idempotency_key " + idempotencyKey + " vanished after a unique-violation");
+        }
+        return t;
+    }
+
+    private static final String INSERT_RETURNING =
+            "INSERT INTO transfers "
+            + "(from_wallet_id, to_wallet_id, amount_paise, idempotency_key, "
+            + " request_fingerprint, status, decline_reason) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            + "RETURNING " + RowMappers.TRANSFER_COLUMNS;
+
+    private Transfer insertTransfer(TransferRequest r, Transfer.Status status, String declineReason) {
+        String fingerprint = RequestFingerprint.of(r.fromWalletId(), r.toWalletId(), r.amountPaise());
+        return jdbc.queryForObject(INSERT_RETURNING, RowMappers.TRANSFER,
+                r.fromWalletId(), r.toWalletId(), r.amountPaise(), r.idempotencyKey(),
+                fingerprint, status.name(), declineReason);
+    }
+}

@@ -10,7 +10,7 @@
 
 ## Context
 
-Why this task exists. What in the problem statement it maps to. What is already
+Why this task exists. Which requirement it maps to. What is already
 in place from earlier tasks.
 
 ## Goal

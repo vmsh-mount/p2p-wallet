@@ -47,7 +47,7 @@ Docker; CI is green on `main`; `docker build` produces a runnable image.
 ## Deliverables
 
 - `mvnw`, `mvnw.cmd`, `.mvn/wrapper/maven-wrapper.properties`
-- `src/test/java/com/paytm/wallet/WalletApplicationTest.java`
+- `src/test/java/com/p2pwallet/wallet/WalletApplicationTest.java`
 - Updated `.github/workflows/ci.yml`
 - `.editorconfig`
 - `README.md` badge + "Delivery plan" link

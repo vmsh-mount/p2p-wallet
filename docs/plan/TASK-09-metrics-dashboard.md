@@ -10,7 +10,7 @@
 
 ## Context
 
-The brief wants request rate, latency p99, error rate **plus domain counters**
+We want request rate, latency p99, error rate **plus domain counters**
 (transfers created / declined-insufficient-funds / idempotent-replays), exposed
 at `/metrics` or a small dashboard.
 
@@ -51,7 +51,7 @@ free snapshot) linked from README.
   registry scrape.
 - **Static self-hosted dashboard over Grafana** as the primary — zero extra infra,
   survives on the free tier, one link. Grafana Cloud free tier documented for the
-  reviewer who wants historical graphs.
+  operator who wants historical graphs.
 - **Domain timer tagged `{engine,outcome}`** so the same dashboard doubles as the
   TASK-07 benchmark view when `TRANSFER_ENGINE` is flipped live.
 - **Avoid high-cardinality tags** — no `user_id`, no `wallet_id`, no

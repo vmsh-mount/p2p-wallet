@@ -10,7 +10,7 @@
 
 ## Context
 
-The brief is explicit: multi-stage Dockerfile, **non-root** user, `HEALTHCHECK`;
+The requirements are explicit: multi-stage Dockerfile, **non-root** user, `HEALTHCHECK`;
 docker-compose bringing up app + Postgres with **one command**. Scaffold exists;
 this task hardens and verifies it.
 

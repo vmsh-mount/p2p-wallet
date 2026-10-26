@@ -1,2 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
-com.paytm.wallet.config.RenderDatabaseUrlEnvironmentPostProcessor
+com.p2pwallet.wallet.config.RenderDatabaseUrlEnvironmentPostProcessor

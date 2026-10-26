@@ -10,7 +10,7 @@
 
 ## Context
 
-"Auth sophistication is explicitly NOT graded" — but a call must be attributable
+Auth sophistication is explicitly out of scope — but a call must be attributable
 to a user so `POST /transfers` can reject a caller debiting a wallet they don't
 own, and so logs carry `user_id`. Keep it minimal and obviously correct.
 
@@ -39,12 +39,12 @@ and health stay open.
 ## Design notes / decisions
 
 - **Static config map, not a DB table.** Tokens are test fixtures; a table adds a
-  migration and a lookup per request for zero grading value. `AUTH_TOKENS` is a
+  migration and a lookup per request for zero practical value. `AUTH_TOKENS` is a
   `sync:false` secret in Render.
 - **Servlet `Filter`, not Spring Security.** Spring Security pulls a large
   autoconfig surface and filter chain to express "map a header to a string". A
   30-line filter is easier to defend line-by-line.
-  - *Rejected: Spring Security* — reconsider only if the reviewer wants method
+  - *Rejected: Spring Security* — reconsider only if we need method
     security; noted in WRITEUP.
 - Ownership enforcement (caller `userId` must own `from` wallet) lives in
   `TransferService` (TASK-06), not the filter — the filter only authenticates.

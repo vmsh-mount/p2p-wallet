@@ -54,7 +54,7 @@ the write-up.
 - **Serializable retry policy** is itself a design choice to defend: bounded
   attempts prevent a retry storm from becoming a DoS; jitter prevents lockstep
   re-collision; exhaustion is a `503` (retry later) not a `500`.
-- Keep all three in the shipped image — costs nothing, and lets the reviewer flip
+- Keep all three in the shipped image — costs nothing, and lets an operator flip
   `TRANSFER_ENGINE` on the live URL and re-run `burst.sh`.
 
 ## Deliverables

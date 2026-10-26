@@ -4,15 +4,15 @@
 [![evals](../../actions/workflows/evals.yml/badge.svg)](../../actions/workflows/evals.yml)
 
 A wallet & peer-to-peer transfer service — race-free wallets, exactly-once idempotent transfers,
-and no-overdraft under concurrency, backed by a single Postgres. Round-2 exercise — see
-[docs/PROBLEM_STATEMENT.md](docs/PROBLEM_STATEMENT.md).
+and no-overdraft under concurrency, backed by a single Postgres.
 
-**Status: done, deployed.** All 13 delivery tasks shipped — see [`SUBMISSION.md`](SUBMISSION.md)
-for the live URL, dashboard, write-up, and eval report links.
+**Live:** <https://p2p-wallet.onrender.com> · [metrics](https://p2p-wallet.onrender.com/metrics) ·
+[dashboard](https://p2p-wallet.onrender.com/dashboard) · latest eval run against the deployment:
+[`evals/reports/20260911T050309Z.md`](evals/reports/20260911T050309Z.md).
 
 Build: `./mvnw -B verify` (Maven wrapper pinned to 3.9.9; needs a JDK 21+ and a Docker daemon for the Testcontainers-backed tests).
 
-**Delivery plan:** [`docs/plan/`](docs/plan/README.md) — 14 tasks, each with scope, design decisions, acceptance criteria and a test plan. Worked one at a time.
+**Delivery plan:** [`docs/plan/`](docs/plan/README.md) — 13 tasks, each with scope, design decisions, acceptance criteria and a test plan. Worked one at a time.
 **Write-up:** [`docs/WRITEUP.md`](docs/WRITEUP.md) (longer form: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
 **Evals:** [`evals/`](evals/README.md) — black-box invariant + operational scenario specs; traceability in [`evals/matrix.md`](evals/matrix.md).
 
@@ -102,10 +102,10 @@ and on the host below; only environment variables differ.
      Render builds the `Dockerfile` and provisions the DB from `render.yaml` — no other
      console-only config.
   3. Set the `AUTH_TOKENS` secret in the dashboard (`sync: false` — never committed).
-     Generate real tokens for the submission; only hand out the ones a reviewer needs.
+     Generate real tokens; only hand out the ones a client needs.
   4. `healthCheckPath: /actuator/health/readiness` gates Render's own rollout health.
 - **`DATABASE_URL` bridge:** Render hands the app `postgres://user:pass@host/db`;
-  [`RenderDatabaseUrlEnvironmentPostProcessor`](src/main/java/com/paytm/wallet/config/RenderDatabaseUrlEnvironmentPostProcessor.java)
+  [`RenderDatabaseUrlEnvironmentPostProcessor`](src/main/java/com/p2pwallet/wallet/config/RenderDatabaseUrlEnvironmentPostProcessor.java)
   splits it into `spring.datasource.{url,username,password}` at boot — no shell/entrypoint hack.
   Verified locally: booting the jar with `DATABASE_URL=postgres://wallet:wallet@localhost:5432/wallet`
   migrates, passes readiness, and serves `POST /wallets` exactly like the local `jdbc:` form.
@@ -171,7 +171,7 @@ stack on every PR (`.github/workflows/evals.yml`).
 ## Layout
 
 ```
-src/main/java/com/paytm/wallet/
+src/main/java/com/p2pwallet/wallet/
   api/            controllers + DTOs + HTTP error mapping
   service/        WalletService, TransferService, domain exceptions
   service/transfer/  TransferEngine + 3 implementations
@@ -214,7 +214,7 @@ shareable dashboard — noted, not built (no code, survives restarts).
 ## Observability → Metrics & Dashboard
 
 - **`GET /metrics`** — Prometheus text (0.0.4), unauthenticated. Same content as
-  `GET /actuator/prometheus` (kept for tooling); `/metrics` is the brief's wording.
+  `GET /actuator/prometheus` (kept for tooling); `/metrics` is the short, stable path.
 - **`GET /dashboard`** — a static one-pager (no external requests) polling `/metrics` every 3 s:
   request rate, http p99, error %, and the domain counters + transfer p99 + serializable retries.
 - **RED** comes from `http_server_requests_seconds` (histogram + p50/p95/p99, explicit SLO buckets):
@@ -241,7 +241,7 @@ static dashboard is the primary — zero extra infra, one link, survives the fre
 
 ## Roadmap
 
-Execution is tracked in [`docs/plan/README.md`](docs/plan/README.md) — 14 tasks,
-5 milestones (M1 correct-core → M5 submitted). Start at
+Execution is tracked in [`docs/plan/README.md`](docs/plan/README.md) — 13 tasks,
+4 milestones (M1 correct-core → M4 provable). Start at
 [TASK-00](docs/plan/TASK-00-build-tooling-ci.md) and work down; each task's
 Definition of Done gates the next.

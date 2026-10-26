@@ -1,0 +1,108 @@
+package com.p2pwallet.wallet.service;
+
+import com.p2pwallet.wallet.domain.Transfer;
+import com.p2pwallet.wallet.domain.Wallet;
+import com.p2pwallet.wallet.observability.CorrelationIdFilter;
+import com.p2pwallet.wallet.observability.DomainEvents;
+import com.p2pwallet.wallet.observability.WalletMetrics;
+import com.p2pwallet.wallet.repo.TransferRepository;
+import com.p2pwallet.wallet.repo.WalletRepository;
+import com.p2pwallet.wallet.service.transfer.TransferEngine;
+import com.p2pwallet.wallet.service.transfer.TransferOutcome;
+import com.p2pwallet.wallet.service.transfer.TransferRequest;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+/**
+ * Orchestrates a transfer: validate (positive amount, distinct wallets, both
+ * wallets exist, caller owns the source), then delegate the atomic money
+ * movement to the active {@link TransferEngine}. Insufficient funds is a
+ * <em>value</em> — {@code Transfer{status=DECLINED}} — not an exception.
+ *
+ * <p>Idempotency-key handling (replay → stored result, different body →
+ * {@link DomainExceptions.IdempotencyConflict} → 409) lives in the engine, inside
+ * the money-movement transaction. Domain counters are the engine's too, since it
+ * is the thing that knows whether an effect actually happened or was replayed.
+ */
+@Service
+public class TransferService {
+
+    private final TransferEngine engine;
+    private final TransferRepository transfers;
+    private final WalletRepository wallets;
+    private final WalletMetrics metrics;
+
+    public TransferService(TransferEngine engine, TransferRepository transfers,
+                           WalletRepository wallets, WalletMetrics metrics) {
+        this.engine = engine;
+        this.transfers = transfers;
+        this.wallets = wallets;
+        this.metrics = metrics;
+    }
+
+    public TransferOutcome create(TransferRequest request, String callerUserId, String correlationId) {
+        // Ensure a correlation id is in the MDC even for direct (non-HTTP) callers,
+        // so every DomainEvents line for this transfer is correlated.
+        boolean ownsMdc = MDC.get(CorrelationIdFilter.MDC_KEY) == null && correlationId != null;
+        if (ownsMdc) {
+            MDC.put(CorrelationIdFilter.MDC_KEY, correlationId);
+        }
+        try {
+            return doCreate(request, callerUserId);
+        } finally {
+            if (ownsMdc) {
+                MDC.remove(CorrelationIdFilter.MDC_KEY);
+            }
+        }
+    }
+
+    private TransferOutcome doCreate(TransferRequest request, String callerUserId) {
+        if (request.amountPaise() <= 0) {
+            throw new DomainExceptions.InvalidTransfer("amount_paise must be positive");
+        }
+        if (request.fromWalletId().equals(request.toWalletId())) {
+            throw new DomainExceptions.InvalidTransfer("from and to must be different wallets");
+        }
+        Wallet from = wallets.findById(request.fromWalletId()).orElseThrow(() ->
+                new DomainExceptions.NotFound("wallet " + request.fromWalletId() + " not found"));
+        wallets.findById(request.toWalletId()).orElseThrow(() ->
+                new DomainExceptions.NotFound("wallet " + request.toWalletId() + " not found"));
+        if (!from.userId().equals(callerUserId)) {
+            throw new DomainExceptions.NotWalletOwner(
+                    "caller does not own source wallet " + from.id());
+        }
+
+        DomainEvents.transferReceived(request.fromWalletId(), request.toWalletId(),
+                request.amountPaise(), request.idempotencyKey());
+
+        String engineTag = engine.engineType().configValue();
+        long startNanos = System.nanoTime();
+        String outcomeTag = "error";
+        try {
+            TransferOutcome outcome = engine.execute(request);
+            outcomeTag = outcome.replayed() ? "replayed"
+                    : outcome.transfer().status() == Transfer.Status.COMPLETED ? "completed" : "declined";
+            if ("completed".equals(outcomeTag)) {
+                DomainEvents.transferCompleted(outcome.transfer().id(), request.amountPaise(),
+                        (System.nanoTime() - startNanos) / 1_000_000.0);
+            }
+            return outcome;
+        } catch (DomainExceptions.IdempotencyConflict e) {
+            outcomeTag = "conflict";
+            throw e;
+        } catch (DomainExceptions.SerializationExhausted e) {
+            outcomeTag = "exhausted";
+            throw e;
+        } finally {
+            metrics.transferObserved(engineTag, outcomeTag, request.amountPaise(),
+                    System.nanoTime() - startNanos);
+        }
+    }
+
+    public Transfer get(UUID transferId) {
+        return transfers.findById(transferId).orElseThrow(() ->
+                new DomainExceptions.NotFound("transfer " + transferId + " not found"));
+    }
+}

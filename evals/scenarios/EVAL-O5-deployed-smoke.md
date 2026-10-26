@@ -16,7 +16,7 @@ path, and public observability — end to end on real free-tier infra.
 ## Preconditions
 
 - Public base URL (e.g. `https://p2p-wallet.onrender.com`).
-- A demo bearer token published in `SUBMISSION.md`.
+- A demo bearer token configured in `AUTH_TOKENS`.
 
 ## Procedure
 

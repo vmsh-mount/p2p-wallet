@@ -45,7 +45,7 @@ plus typed row mappers.
   - *Rejected: double-entry ledger* (`entries(transfer_id, wallet_id, delta)` +
     balance = `SUM(delta)`). Auditable and the "real" bank design, but every
     balance read is an aggregate or needs a materialised snapshot, and
-    no-overdraft becomes "sum for update" — more machinery than this exercise
+    no-overdraft becomes "sum for update" — more machinery than this service
     needs. Note it as the scale-up path.
 - **`bigint` paise** — max ≈ 9.2×10¹⁸ paise; no realistic overflow. Reject
   `numeric` (invites float thinking, slower).

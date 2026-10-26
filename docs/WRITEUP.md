@@ -12,7 +12,7 @@
   without trusting the client body.
 - **Rejected — double-entry ledger** (`entries(transfer_id, wallet_id, delta)`, balance = `SUM(delta)`):
   the auditable "real bank" design, but every balance read becomes an aggregate and no-overdraft
-  becomes "sum-for-update" — more machinery than this exercise needs. Scale-up path: adopt it when
+  becomes "sum-for-update" — more machinery than this service needs. Scale-up path: adopt it when
   an audit trail is required, keep `balance_paise` as a materialised snapshot.
 
 ## Simplest-correct mechanism (conservation + no-overdraft)

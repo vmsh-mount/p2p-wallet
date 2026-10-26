@@ -51,7 +51,7 @@ table; `openapi.yaml` (or a README table) is authoritative.
   | unexpected | `500` | error (correlation id only, no stack) |
   - **Declined ≠ error.** A declined transfer is a *successful* API call that
     reports a business outcome; `4xx` would tell clients to fix their request,
-    which is wrong. Documented — reviewers often probe this.
+    which is wrong. Documented — clients often probe this.
   - `201` for new (completed or declined), `200` for replay — lets a client tell
     "my write happened now" from "this was already processed".
 - **`GET` returns the same `TransferResponse`** shape as `POST` for consistency.

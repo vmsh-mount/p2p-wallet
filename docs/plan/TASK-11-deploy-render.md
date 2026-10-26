@@ -30,9 +30,9 @@ Postgres, with health checks green and logs + metrics publicly linkable.
   (`SPRING_DATASOURCE_URL` derivation) or an entrypoint shell step. Decide +
   document.
 - `AUTH_TOKENS` as a `sync:false` secret; generate strong tokens for the
-  submission, publish only the read-only/demo ones needed for grading
+  README, publish only the read-only/demo ones needed for demos
 - Cold-start note: free web service sleeps after ~15 min idle → first request
-  ~30–50s. Document; add a `GET /healthz` the reviewer can warm.
+  ~30–50s. Document; add a `GET /healthz` a client can warm.
 - DB free-tier caveats: expires ~30 days, ~1 GB, capped connections → set Hikari
   `maximum-pool-size` low (e.g. 5); document the expiry date in README
 - Smoke test post-deploy: `scripts/smoke.sh <url>` (get-or-create, transfer,
@@ -55,7 +55,7 @@ Postgres, with health checks green and logs + metrics publicly linkable.
   oversizing the pool causes `FATAL: too many connections` under the burst.
   Tune to the tier, document the number.
 - **Keep-warm:** a tiny external cron (GitHub Actions scheduled workflow hitting
-  `/healthz` every 10 min) keeps cold starts out of the grading burst — optional,
+  `/healthz` every 10 min) keeps cold starts out of a load burst — optional,
   documented, ₹0.
 
 ## Deliverables

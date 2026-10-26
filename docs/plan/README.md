@@ -1,6 +1,6 @@
 # Delivery plan
 
-The exercise is decomposed into **14 tasks**. Each task is a self-contained unit
+The work is decomposed into **13 tasks**. Each task is a self-contained unit
 with a fixed structure (see [`TEMPLATE.md`](TEMPLATE.md)): context, goal, scope,
 design decisions, deliverables, acceptance criteria, an explicit **test plan**
 (unit / integration / eval), a definition of done, and an AI directed-vs-decided
@@ -26,7 +26,6 @@ its acceptance criteria and test plan are green and the change is committed.
 | [10](TASK-10-containerization.md) | Containerization & one-command compose | — | 06 | Done |
 | [11](TASK-11-deploy-render.md) | Deploy to Render + managed Postgres | — | 08 09 10 | Done |
 | [12](TASK-12-burst-eval-harness.md) | Burst script & correctness eval harness | #1 #2 #3 #4 | 06 07 | Done |
-| [13](TASK-13-writeup-submission.md) | Write-up & submission package | — | all | Done |
 
 ## Milestones
 
@@ -36,9 +35,8 @@ its acceptance criteria and test plan are green and the change is committed.
 | **M2 — Observable** | 08–09 | JSON logs with correlation id + domain events; `/metrics` with RED + domain counters |
 | **M3 — Deployed** | 10–11 | Public URL, managed Postgres, ₹0, public logs |
 | **M4 — Provable** | 12 | `./scripts/burst.sh <url>` reproduces every probe with pass/fail exit codes |
-| **M5 — Submitted** | 13 | One-page write-up, submission checklist complete |
 
-## The four invariants (graded)
+## The four invariants
 
 | # | Name | Enforced by (planned) | Verified by |
 |---|------|-----------------------|-------------|

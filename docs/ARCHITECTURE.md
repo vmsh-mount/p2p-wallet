@@ -1,6 +1,6 @@
 # Architecture (longer form)
 
-`docs/WRITEUP.md` is the one-page version graded directly; this fills in detail it had to cut.
+`docs/WRITEUP.md` is the one-page version; this fills in detail it had to cut.
 
 ## Race-free get-or-create (#4)
 
@@ -18,7 +18,7 @@ from a `CyclicBarrier`, one distinct id across all 50 responses, `count(*) == 1`
 
 ## Auth
 
-Deliberately minimal — auth sophistication isn't graded. `Authorization: Bearer <token>` →
+Deliberately minimal — auth sophistication is out of scope. `Authorization: Bearer <token>` →
 `userId` via a static `token:userId` map (`AUTH_TOKENS`, a `sync:false` secret on Render). No DB
 table, no issuance/refresh/expiry/JWT. A ~30-line servlet `Filter`, not Spring Security — mapping
 one header to one string doesn't justify Security's autoconfig surface. Filter order:
@@ -32,7 +32,7 @@ wallet row.
 `./mvnw -B verify` is the single source of truth — Maven wrapper pinned to 3.9.9 so CI and a fresh
 clone build identically. Integration tests run against a real Postgres via Testcontainers (not
 H2): the invariants depend on Postgres semantics (`ON CONFLICT`, `FOR UPDATE`, `SERIALIZABLE`)
-that an embedded DB would fake. No license headers on source files — single-repo take-home, not
+that an embedded DB would fake. No license headers on source files — single-repo project, not
 distributed; noted so the omission is a decision, not an oversight.
 
 ## Observability
@@ -52,7 +52,7 @@ distributed; noted so the omission is a decision, not an oversight.
   timer, all low-cardinality (no user/wallet/key tags).
 - **Dashboard:** `GET /dashboard` — a static one-pager (no external requests) polling `/metrics`
   every 3s. Chosen as the primary observability surface over a hosted Grafana instance: zero
-  infra, survives restarts, no third-party signup for a grader to hit.
+  infra, survives restarts, no third-party signup needed to view it.
 
 ## Containerization
 

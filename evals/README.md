@@ -1,6 +1,6 @@
 # Evals
 
-The invariants in the brief are **properties**, not features. Evals are how we
+The service's invariants are **properties**, not features. Evals are how we
 verify those properties hold — against a running instance, local or deployed,
 as a black box.
 
@@ -8,7 +8,7 @@ as a black box.
 
 | Family | Prefix | Verifies | Run against |
 |--------|--------|----------|-------------|
-| **Correctness** | `EVAL-C*` | the four graded invariants under concurrency & failure | local compose + deployed URL |
+| **Correctness** | `EVAL-C*` | the four core invariants under concurrency & failure | local compose + deployed URL |
 | **Operational** | `EVAL-O*` | genuine deploy / containerize / observe | CI + deployed URL |
 
 Each scenario is a markdown spec in [`scenarios/`](scenarios/) with a fixed shape
@@ -19,7 +19,7 @@ procedure, parameters, **pass criteria**, **fail signatures**, artifacts.
 
 ```
 invariant  ──►  InvariantsIT (white-box, Testcontainers, all 3 engines)   ← fast, CI gate
-           └─►  EVAL-C* scenario  ──►  scripts/burst.sh probe (black-box)  ← reviewer runs this
+           └─►  EVAL-C* scenario  ──►  scripts/burst.sh probe (black-box)  ← anyone can run this
                                   └─►  evals/run.sh (spec → report)        ← full suite + artifacts
 ```
 

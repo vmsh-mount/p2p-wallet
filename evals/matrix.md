@@ -23,7 +23,6 @@ Every invariant is guarded at the schema, proven in-process, and verified black-
 | Structured JSON logs, correlation id, domain events, public | `logback-spring.xml`, `DomainEvents` | `EVAL-O3` | TASK-08 |
 | Metrics: RED + domain counters, `/metrics` or dashboard | `MetricsController`, `dashboard.html` | `EVAL-O4` | TASK-09 |
 | One-command burst script | `scripts/burst.sh` | `EVAL-C1..C4` | TASK-12 |
-| One-page write-up | `docs/WRITEUP.md` | manual review checklist (TASK-13) | TASK-13 |
 
 ## Consistency/availability posture
 

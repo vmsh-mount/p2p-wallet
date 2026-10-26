@@ -1,6 +1,6 @@
 # Optional. Render's free web service sleeps after ~15 min idle (cold start
 # ~30-50s on the next request). This pings a public, dependency-free endpoint
-# every 10 minutes so the instance is warm before a grading burst.
+# every 10 minutes so the instance is warm before a load burst.
 #
 # Costs nothing (GitHub Actions free minutes for a public repo) and touches no
 # secret — /healthz needs no auth. Disabled by default: set the

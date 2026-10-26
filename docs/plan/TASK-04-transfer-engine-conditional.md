@@ -10,7 +10,7 @@
 
 ## Context
 
-The heart of the exercise. Given a validated `TransferRequest`, move money
+The heart of the service. Given a validated `TransferRequest`, move money
 atomically so that total balance is unchanged and no wallet goes negative — even
 when A→B and B→A run at the same instant, and when many transfers contend on a
 small wallet set.

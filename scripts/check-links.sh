@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TASK-13 acceptance criterion: every link in docs/**, README.md, SUBMISSION.md
+# Every link in docs/** and README.md
 # resolves. Checks both external http(s) URLs (HEAD/GET -> 2xx/3xx) and
 # relative file links (path exists on disk, anchors ignored).
 set -uo pipefail
